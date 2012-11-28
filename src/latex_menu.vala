@@ -657,6 +657,7 @@ public class LatexMenu : Gtk.ActionGroup
             "\\begin{figure}\n" +
             @"$indent\\begin{center}\n" +
             @"$indent$indent\\includegraphics{";
+            // selector
 
         string after_cursor =
             "}\n" +
@@ -1150,7 +1151,40 @@ public class LatexMenu : Gtk.ActionGroup
 
     public void on_input ()
     {
-        text_buffer_insert ("\\input{", "}");
+        var open_dialog = new Gtk.FileChooserDialog ("Pick a file",
+                             this as Gtk.Window, // check?
+                             Gtk.FileChooserAction.OPEN,
+                             Gtk.Stock.CANCEL, Gtk.ResponseType.CANCEL,
+                             Gtk.Stock.OPEN, Gtk.ResponseType.ACCEPT);
+
+        open_dialog.local_only = true; // not allow for uri
+        open_dialog.set_modal (true);
+        // add filter to .tex
+        open_dialog.response.connect (open_response_cb);
+        open_dialog.show ();
+    }
+
+    void open_response_cb (Gtk.Dialog dialog, int response_id)
+    {
+        var open_dialog = dialog as Gtk.FileChooserDialog;
+
+        switch (response_id)
+        {
+            case Gtk.ResponseType.ACCEPT: //open the file
+                // string filename = open_dialog.get_filename ();
+                File input_file = open_dialog.get_file ();
+                File current_dir = File.new_for_path ("."); // should be the path of the current doc...
+                string filename = current_dir.get_relative_path (input_file);
+                input_file.unref ();
+                // current_dir.unref ();
+                text_buffer_insert (@"\\input{$filename", "}");
+                break;
+
+            case Gtk.ResponseType.CANCEL:
+                text_buffer_insert ("\\input{", "}");
+                break;
+        }
+        dialog.destroy ();
     }
 
     /* Math environments */
